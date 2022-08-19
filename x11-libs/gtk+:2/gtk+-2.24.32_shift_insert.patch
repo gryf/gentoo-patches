@@ -1,0 +1,186 @@
+diff -ur gtk+-2.24.32/gtk/gtkentry.c gtk+-2.24.32_patched/gtk/gtkentry.c
+--- gtk+-2.24.32/gtk/gtkentry.c	2017-12-10 03:41:59.000000000 +0100
++++ gtk+-2.24.32_patched/gtk/gtkentry.c	2019-03-24 08:29:44.716256488 +0100
+@@ -168,6 +168,7 @@
+   CUT_CLIPBOARD,
+   COPY_CLIPBOARD,
+   PASTE_CLIPBOARD,
++  PASTE_SELECTION,
+   TOGGLE_OVERWRITE,
+   ICON_PRESS,
+   ICON_RELEASE,
+@@ -382,6 +383,8 @@
+ static void gtk_entry_cut_clipboard      (GtkEntry        *entry);
+ static void gtk_entry_copy_clipboard     (GtkEntry        *entry);
+ static void gtk_entry_paste_clipboard    (GtkEntry        *entry);
++static void gtk_entry_paste_selection    (GtkEntry        *entry,
++        const gchar     *which);
+ static void gtk_entry_toggle_overwrite   (GtkEntry        *entry);
+ static void gtk_entry_select_all         (GtkEntry        *entry);
+ static void gtk_entry_real_activate      (GtkEntry        *entry);
+@@ -612,6 +615,7 @@
+   class->cut_clipboard = gtk_entry_cut_clipboard;
+   class->copy_clipboard = gtk_entry_copy_clipboard;
+   class->paste_clipboard = gtk_entry_paste_clipboard;
++  class->paste_selection = gtk_entry_paste_selection;
+   class->toggle_overwrite = gtk_entry_toggle_overwrite;
+   class->activate = gtk_entry_real_activate;
+   class->get_text_area_size = gtk_entry_get_text_area_size;
+@@ -1485,6 +1489,17 @@
+ 		  _gtk_marshal_VOID__VOID,
+ 		  G_TYPE_NONE, 0);
+ 
++  signals[PASTE_SELECTION] =
++    g_signal_new (I_("paste-selection"),
++		  G_OBJECT_CLASS_TYPE (gobject_class),
++		  G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
++		  G_STRUCT_OFFSET (GtkEntryClass, paste_selection),
++		  NULL, NULL,
++		  _gtk_marshal_VOID__STRING,
++		  G_TYPE_NONE, 1,
++		  G_TYPE_STRING);
++
++
+   /**
+    * GtkEntry::toggle-overwrite:
+    * @entry: the object which received the signal
+@@ -5118,6 +5133,26 @@
+ }
+ 
+ static void
++gtk_entry_paste_selection (GtkEntry *entry,
++        const gchar *which)
++{
++    if (entry->editable)
++    {
++        if (g_str_equal(which, "primary"))
++            gtk_entry_paste (entry, GDK_SELECTION_PRIMARY);
++        else if (g_str_equal(which, "secondary"))
++            gtk_entry_paste (entry, GDK_SELECTION_PRIMARY);
++        else if (g_str_equal(which, "clipboard"))
++            gtk_entry_paste (entry, GDK_SELECTION_CLIPBOARD);
++        else
++            gtk_widget_error_bell (GTK_WIDGET (entry));
++    }
++    else
++        gtk_widget_error_bell (GTK_WIDGET (entry));
++}
++
++
++static void
+ gtk_entry_delete_cb (GtkEntry *entry)
+ {
+   GtkEditable *editable = GTK_EDITABLE (entry);
+diff -ur gtk+-2.24.32/gtk/gtkentry.h gtk+-2.24.32_patched/gtk/gtkentry.h
+--- gtk+-2.24.32/gtk/gtkentry.h	2016-10-22 06:11:44.000000000 +0200
++++ gtk+-2.24.32_patched/gtk/gtkentry.h	2019-03-24 08:35:02.484264490 +0100
+@@ -158,9 +158,11 @@
+ 			       gint           *width,
+ 			       gint           *height);
+ 
++  void (* paste_selection)    (GtkEntry             *entry,
++          const gchar          *which);
++
+   /* Padding for future expansion */
+   void (*_gtk_reserved1)      (void);
+-  void (*_gtk_reserved2)      (void);
+ };
+ 
+ GType      gtk_entry_get_type       		(void) G_GNUC_CONST;
+diff -ur gtk+-2.24.32/gtk/gtktextview.c gtk+-2.24.32_patched/gtk/gtktextview.c
+--- gtk+-2.24.32/gtk/gtktextview.c	2017-04-08 07:34:42.000000000 +0200
++++ gtk+-2.24.32_patched/gtk/gtktextview.c	2019-03-24 08:58:36.752300106 +0100
+@@ -135,6 +135,7 @@
+   CUT_CLIPBOARD,
+   COPY_CLIPBOARD,
+   PASTE_CLIPBOARD,
++  PASTE_SELECTION,
+   TOGGLE_OVERWRITE,
+   MOVE_VIEWPORT,
+   SELECT_ALL,
+@@ -281,6 +282,8 @@
+ static void gtk_text_view_cut_clipboard    (GtkTextView           *text_view);
+ static void gtk_text_view_copy_clipboard   (GtkTextView           *text_view);
+ static void gtk_text_view_paste_clipboard  (GtkTextView           *text_view);
++static void gtk_text_view_paste_selection  (GtkTextView           *text_view,
++        const gchar           *which);
+ static void gtk_text_view_toggle_overwrite (GtkTextView           *text_view);
+ static void gtk_text_view_toggle_cursor_visible (GtkTextView      *text_view);
+ static void gtk_text_view_compat_move_focus(GtkTextView           *text_view,
+@@ -532,6 +535,7 @@
+   klass->cut_clipboard = gtk_text_view_cut_clipboard;
+   klass->copy_clipboard = gtk_text_view_copy_clipboard;
+   klass->paste_clipboard = gtk_text_view_paste_clipboard;
++  klass->paste_selection = gtk_text_view_paste_selection;
+   klass->toggle_overwrite = gtk_text_view_toggle_overwrite;
+   klass->move_focus = gtk_text_view_compat_move_focus;
+   klass->set_scroll_adjustments = gtk_text_view_set_scroll_adjustments;
+@@ -946,6 +950,16 @@
+ 		  _gtk_marshal_VOID__VOID,
+ 		  G_TYPE_NONE, 0);
+ 
++  signals[PASTE_SELECTION] =
++      g_signal_new (I_("paste-selection"),
++              G_OBJECT_CLASS_TYPE (gobject_class),
++              G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
++              G_STRUCT_OFFSET (GtkTextViewClass, paste_selection),
++              NULL, NULL,
++              _gtk_marshal_VOID__STRING,
++              G_TYPE_NONE, 1,
++              G_TYPE_STRING);
++
+   /**
+    * GtkTextView::toggle-overwrite:
+    * @text_view: the object which received the signal
+@@ -5843,6 +5857,31 @@
+ }
+ 
+ static void
++gtk_text_view_paste_selection (GtkTextView *text_view,
++        const gchar *which)
++{
++    GtkClipboard *clipboard = NULL;
++
++  if (g_str_equal (which, "primary"))
++    clipboard = gtk_widget_get_clipboard (GTK_WIDGET (text_view),
++                                         GDK_SELECTION_PRIMARY);
++  else if (g_str_equal (which, "secondary"))
++    clipboard = gtk_widget_get_clipboard (GTK_WIDGET (text_view),
++                                         GDK_SELECTION_SECONDARY);
++  else if (g_str_equal (which, "clipboard"))
++    clipboard = gtk_widget_get_clipboard (GTK_WIDGET (text_view),
++                                         GDK_SELECTION_CLIPBOARD);
++
++  if (clipboard)
++    gtk_text_buffer_paste_clipboard (get_buffer (text_view),
++                                    clipboard,
++                                    NULL,
++                                    text_view->editable);
++  else
++    gtk_widget_error_bell (GTK_WIDGET (text_view));
++}
++
++static void
+ gtk_text_view_paste_done_handler (GtkTextBuffer *buffer,
+                                   GtkClipboard  *clipboard,
+                                   gpointer       data)
+diff -ur gtk+-2.24.32/gtk/gtktextview.h gtk+-2.24.32_patched/gtk/gtktextview.h
+--- gtk+-2.24.32/gtk/gtktextview.h	2016-10-22 06:11:45.000000000 +0200
++++ gtk+-2.24.32_patched/gtk/gtktextview.h	2019-03-24 08:34:41.716263967 +0100
+@@ -203,6 +203,8 @@
+    */
+   void (* move_focus)       (GtkTextView     *text_view,
+                              GtkDirectionType direction);
++  void (* paste_selection) (GtkTextView *text_view,
++          const gchar *which);
+ 
+   /* Padding for future expansion */
+   void (*_gtk_reserved1) (void);
+@@ -211,7 +213,6 @@
+   void (*_gtk_reserved4) (void);
+   void (*_gtk_reserved5) (void);
+   void (*_gtk_reserved6) (void);
+-  void (*_gtk_reserved7) (void);
+ };
+ 
+ GType          gtk_text_view_get_type              (void) G_GNUC_CONST;

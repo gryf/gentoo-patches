@@ -1,0 +1,206 @@
+diff -ur gtk+-3.24.1/gtk/gtkentry.c gtk+-3.24.1_patched/gtk/gtkentry.c
+--- gtk+-3.24.1/gtk/gtkentry.c	2018-06-03 15:43:28.000000000 +0200
++++ gtk+-3.24.1_patched/gtk/gtkentry.c	2019-03-24 12:26:55.484614867 +0100
+@@ -323,6 +323,7 @@
+   CUT_CLIPBOARD,
+   COPY_CLIPBOARD,
+   PASTE_CLIPBOARD,
++  PASTE_SELECTION,
+   TOGGLE_OVERWRITE,
+   ICON_PRESS,
+   ICON_RELEASE,
+@@ -552,6 +553,7 @@
+ static void gtk_entry_cut_clipboard      (GtkEntry        *entry);
+ static void gtk_entry_copy_clipboard     (GtkEntry        *entry);
+ static void gtk_entry_paste_clipboard    (GtkEntry        *entry);
++static void gtk_entry_paste_selection    (GtkEntry        *entry);
+ static void gtk_entry_toggle_overwrite   (GtkEntry        *entry);
+ static void gtk_entry_insert_emoji       (GtkEntry        *entry);
+ static void gtk_entry_select_all         (GtkEntry        *entry);
+@@ -816,6 +818,7 @@
+   class->cut_clipboard = gtk_entry_cut_clipboard;
+   class->copy_clipboard = gtk_entry_copy_clipboard;
+   class->paste_clipboard = gtk_entry_paste_clipboard;
++  class->paste_selection = gtk_entry_paste_selection;
+   class->toggle_overwrite = gtk_entry_toggle_overwrite;
+   class->insert_emoji = gtk_entry_insert_emoji;
+   class->activate = gtk_entry_real_activate;
+@@ -1828,6 +1831,15 @@
+ 		  NULL,
+ 		  G_TYPE_NONE, 0);
+ 
++  signals[PASTE_SELECTION] =
++      g_signal_new (I_("paste-selection"),
++              G_OBJECT_CLASS_TYPE (gobject_class),
++              G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
++              G_STRUCT_OFFSET (GtkEntryClass, paste_selection),
++              NULL, NULL,
++              NULL,
++              G_TYPE_NONE, 0);
++
+   /**
+    * GtkEntry::toggle-overwrite:
+    * @entry: the object which received the signal
+@@ -2086,14 +2098,14 @@
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_Insert, GDK_CONTROL_MASK,
+ 				"copy-clipboard", 0);
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_Insert, GDK_SHIFT_MASK,
+-				"paste-clipboard", 0);
++				"paste-selection", 0);
+ 
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_KP_Delete, GDK_SHIFT_MASK,
+                                 "cut-clipboard", 0);
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_KP_Insert, GDK_CONTROL_MASK,
+                                 "copy-clipboard", 0);
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_KP_Insert, GDK_SHIFT_MASK,
+-                                "paste-clipboard", 0);
++                                "paste-selection", 0);
+ 
+   /* Overwrite */
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_Insert, 0,
+@@ -5986,6 +5998,27 @@
+     }
+ }
+ 
++static void
++gtk_entry_paste_selection (GtkEntry *entry)
++{
++    GtkEntryPrivate *priv = entry->priv;
++
++    if (priv->editable)
++        gtk_entry_paste (entry, GDK_SELECTION_PRIMARY);
++    else
++        gtk_widget_error_bell (GTK_WIDGET (entry));
++
++    if (priv->text_handle)
++    {
++        GtkTextHandleMode handle_mode;
++
++        handle_mode = _gtk_text_handle_get_mode (priv->text_handle);
++
++        if (handle_mode != GTK_TEXT_HANDLE_MODE_NONE)
++            gtk_entry_update_handles (entry, GTK_TEXT_HANDLE_MODE_CURSOR);
++    }
++}
++
+ static void
+ gtk_entry_delete_cb (GtkEntry *entry)
+ {
+diff -ur gtk+-3.24.1/gtk/gtkentry.h gtk+-3.24.1_patched/gtk/gtkentry.h
+--- gtk+-3.24.1/gtk/gtkentry.h	2017-11-27 00:24:51.000000000 +0100
++++ gtk+-3.24.1_patched/gtk/gtkentry.h	2019-03-24 11:55:03.848566726 +0100
+@@ -145,6 +145,7 @@
+   void (* cut_clipboard)      (GtkEntry             *entry);
+   void (* copy_clipboard)     (GtkEntry             *entry);
+   void (* paste_clipboard)    (GtkEntry             *entry);
++  void (* paste_selection)    (GtkEntry             *entry);
+   void (* toggle_overwrite)   (GtkEntry             *entry);
+ 
+   /* hooks to add other objects beside the entry (like in GtkSpinButton) */
+@@ -168,7 +169,6 @@
+   void (*_gtk_reserved3)      (void);
+   void (*_gtk_reserved4)      (void);
+   void (*_gtk_reserved5)      (void);
+-  void (*_gtk_reserved6)      (void);
+ };
+ 
+ GDK_AVAILABLE_IN_ALL
+diff -ur gtk+-3.24.1/gtk/gtktextview.c gtk+-3.24.1_patched/gtk/gtktextview.c
+--- gtk+-3.24.1/gtk/gtktextview.c	2018-07-25 14:29:25.000000000 +0200
++++ gtk+-3.24.1_patched/gtk/gtktextview.c	2019-03-24 11:46:29.476553772 +0100
+@@ -327,6 +327,7 @@
+   CUT_CLIPBOARD,
+   COPY_CLIPBOARD,
+   PASTE_CLIPBOARD,
++  PASTE_SELECTION,
+   TOGGLE_OVERWRITE,
+   MOVE_VIEWPORT,
+   SELECT_ALL,
+@@ -497,6 +498,7 @@
+ static void gtk_text_view_cut_clipboard    (GtkTextView           *text_view);
+ static void gtk_text_view_copy_clipboard   (GtkTextView           *text_view);
+ static void gtk_text_view_paste_clipboard  (GtkTextView           *text_view);
++static void gtk_text_view_paste_selection  (GtkTextView           *text_view);
+ static void gtk_text_view_toggle_overwrite (GtkTextView           *text_view);
+ static void gtk_text_view_toggle_cursor_visible (GtkTextView      *text_view);
+ 
+@@ -785,6 +787,7 @@
+   klass->cut_clipboard = gtk_text_view_cut_clipboard;
+   klass->copy_clipboard = gtk_text_view_copy_clipboard;
+   klass->paste_clipboard = gtk_text_view_paste_clipboard;
++  klass->paste_selection = gtk_text_view_paste_selection;
+   klass->toggle_overwrite = gtk_text_view_toggle_overwrite;
+   klass->create_buffer = gtk_text_view_create_buffer;
+   klass->extend_selection = gtk_text_view_extend_selection;
+@@ -1305,6 +1308,15 @@
+ 		  NULL,
+ 		  G_TYPE_NONE, 0);
+ 
++  signals[PASTE_SELECTION] =
++      g_signal_new (I_("paste-selection"),
++              G_OBJECT_CLASS_TYPE (gobject_class),
++              G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
++              G_STRUCT_OFFSET (GtkTextViewClass, paste_selection),
++              NULL, NULL,
++              NULL,
++              G_TYPE_NONE, 0);
++
+   /**
+    * GtkTextView::toggle-overwrite:
+    * @text_view: the object which received the signal
+@@ -1652,14 +1664,14 @@
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_KP_Insert, GDK_CONTROL_MASK,
+ 				"copy-clipboard", 0);
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_KP_Insert, GDK_SHIFT_MASK,
+-				"paste-clipboard", 0);
++				"paste-selection", 0);
+ 
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_Delete, GDK_SHIFT_MASK,
+                                 "cut-clipboard", 0);
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_Insert, GDK_CONTROL_MASK,
+                                 "copy-clipboard", 0);
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_Insert, GDK_SHIFT_MASK,
+-                                "paste-clipboard", 0);
++                                "paste-selection", 0);
+ 
+   /* Overwrite */
+   gtk_binding_entry_add_signal (binding_set, GDK_KEY_Insert, 0,
+@@ -7221,6 +7233,19 @@
+ }
+ 
+ static void
++gtk_text_view_paste_selection (GtkTextView *text_view)
++{
++    GtkClipboard *clipboard = gtk_widget_get_clipboard (GTK_WIDGET (text_view),
++            GDK_SELECTION_PRIMARY);
++
++    text_view->priv->scroll_after_paste = TRUE;
++    gtk_text_buffer_paste_clipboard (get_buffer (text_view),
++                clipboard,
++                NULL,
++                text_view->priv->editable);
++}
++
++static void
+ gtk_text_view_paste_done_handler (GtkTextBuffer *buffer,
+                                   GtkClipboard  *clipboard,
+                                   gpointer       data)
+diff -ur gtk+-3.24.1/gtk/gtktextview.h gtk+-3.24.1_patched/gtk/gtktextview.h
+--- gtk+-3.24.1/gtk/gtktextview.h	2017-11-26 22:31:46.000000000 +0100
++++ gtk+-3.24.1_patched/gtk/gtktextview.h	2019-03-24 11:57:41.592570698 +0100
+@@ -181,6 +181,7 @@
+   void (* cut_clipboard)         (GtkTextView      *text_view);
+   void (* copy_clipboard)        (GtkTextView      *text_view);
+   void (* paste_clipboard)       (GtkTextView      *text_view);
++  void (* paste_selection)       (GtkTextView      *text_view);
+   void (* toggle_overwrite)      (GtkTextView      *text_view);
+   GtkTextBuffer * (* create_buffer) (GtkTextView   *text_view);
+   void (* draw_layer)            (GtkTextView      *text_view,
+@@ -199,7 +200,6 @@
+   void (*_gtk_reserved1) (void);
+   void (*_gtk_reserved2) (void);
+   void (*_gtk_reserved3) (void);
+-  void (*_gtk_reserved4) (void);
+ };
+ 
+ GDK_AVAILABLE_IN_ALL
