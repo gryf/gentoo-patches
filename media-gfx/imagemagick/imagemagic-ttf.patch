@@ -1,0 +1,27 @@
+diff -ur ImageMagick-7.0.10-52-a/coders/ttf.c ImageMagick-7.0.10-52-b/coders/ttf.c
+--- ImageMagick-7.0.10-52-a/coders/ttf.c	2020-12-19 21:07:03.000000000 +0100
++++ ImageMagick-7.0.10-52-b/coders/ttf.c	2021-01-25 21:13:39.682193361 +0100
+@@ -173,9 +173,11 @@
+ 
+   const char
+     Text[] =
+-      "abcdefghijklmnopqrstuvwxyz\n"
+-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
+-      "0123456789.:,;(*!?}^)#${%^&-+@\n";
++      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
++      "ąćęłńóśżź ĄĆŁŃÓŚŻŹ 0123456789.:,;(*!?}^)#${%^&-+@\n"
++      "взъярён . いろはにほへと ☆*･゜ﾟ･*\\(＾▽＾)/*･゜ﾟ･*☆\n"
++      "0Ool1I|i! * - + ;: ,. \\/ <> [] () {}\n"
++      "emoji: 🖕🍁🖴 nerd font: \n";
+ 
+   const TypeInfo
+     *type_info;
+@@ -290,7 +292,7 @@
+   /*
+     Relinquish resources.
+   */
+-  (void) RelinquishUniqueFileResource(draw_info->font);  
++  (void) RelinquishUniqueFileResource(draw_info->font);
+   draw_info=DestroyDrawInfo(draw_info);
+   (void) CloseBlob(image);
+   return(GetFirstImageInList(image));
