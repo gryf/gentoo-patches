@@ -16,12 +16,3 @@ diff -ur ImageMagick-7.0.10-52-a/coders/ttf.c ImageMagick-7.0.10-52-b/coders/ttf
  
    const TypeInfo
      *type_info;
-@@ -290,7 +292,7 @@
-   /*
-     Relinquish resources.
-   */
--  (void) RelinquishUniqueFileResource(draw_info->font);  
-+  (void) RelinquishUniqueFileResource(draw_info->font);
-   draw_info=DestroyDrawInfo(draw_info);
-   (void) CloseBlob(image);
-   return(GetFirstImageInList(image));
