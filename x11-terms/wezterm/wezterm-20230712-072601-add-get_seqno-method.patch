@@ -1,0 +1,17 @@
+diff --git a/lua-api-crates/mux/src/pane.rs b/lua-api-crates/mux/src/pane.rs
+index f0d919e16..0a16b03d3 100644
+--- a/lua-api-crates/mux/src/pane.rs
++++ b/lua-api-crates/mux/src/pane.rs
+@@ -409,6 +409,12 @@ impl UserData for MuxPane {
+             let pane = this.resolve(&mux)?;
+             Ok(pane.tty_name())
+         });
++
++        methods.add_method("get_seqno", move |_lua, this, ()| {
++            let mux = Mux::get();
++            let pane = this.resolve(&mux)?;
++            Ok(pane.get_current_seqno())
++        });
+     }
+ }
+ 
