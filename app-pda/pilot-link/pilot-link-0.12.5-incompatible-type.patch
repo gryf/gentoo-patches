@@ -1,0 +1,14 @@
+diff '--color=auto' -ur pilot-link-0.12.5_orig/src/pilot-read-todos.c pilot-link-0.12.5/src/pilot-read-todos.c
+--- pilot-link-0.12.5_orig/src/pilot-read-todos.c	2009-06-04 15:32:32.000000000 +0200
++++ pilot-link-0.12.5/src/pilot-read-todos.c	2025-02-18 15:04:20.120418647 +0100
+@@ -202,8 +202,8 @@
+ 
+ 	for (i = 0;; i++) {
+ 		int 	attr,
+-			category,
+-			len;
++			category;
++		long unsigned int len;
+ 
+ 		struct 	ToDo todo;
+ 
