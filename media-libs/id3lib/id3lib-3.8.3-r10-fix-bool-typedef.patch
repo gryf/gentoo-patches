@@ -1,0 +1,17 @@
+--- id3lib-3.8.3_orig/include/id3/globals.h	2026-04-01 11:04:30.002608338 +0200
++++ id3lib-3.8.3/include/id3/globals.h	2026-04-01 11:06:12.388848196 +0200
+@@ -82,14 +82,6 @@
+ 
+ #define ID3_C_VAR extern
+ 
+-#ifndef __cplusplus
+-
+-typedef int bool;
+-#  define false (0)
+-#  define true (!false)
+-
+-#endif /* __cplusplus */
+-
+ ID3_C_VAR const char * const ID3LIB_NAME;
+ ID3_C_VAR const char * const ID3LIB_RELEASE;
+ ID3_C_VAR const char * const ID3LIB_FULL_NAME;
