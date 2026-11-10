@@ -1,0 +1,21 @@
+diff '--color=auto' -ur fs-uae-3.2.35-orig/src/statusline.cpp fs-uae-3.2.35/src/statusline.cpp
+--- fs-uae-3.2.35-orig/src/statusline.cpp	2025-09-07 13:20:23.000000000 +0200
++++ fs-uae-3.2.35/src/statusline.cpp	2026-11-10 10:35:59.612110822 +0100
+@@ -44,7 +44,7 @@
+ 	}
+ }
+ 
+-static const char *numbers = { /* ugly  0123456789CHD%+-P */
++static const char *numbers_bmp = { /* ugly  0123456789CHD%+-P */
+ 	"+++++++--++++-+++++++++++++++++-++++++++++++++++++++++++++++++++++++++++++++-++++++-++++----++---+--------------+++++++"
+ 	"+xxxxx+--+xx+-+xxxxx++xxxxx++x+-+x++xxxxx++xxxxx++xxxxx++xxxxx++xxxxx++xxxx+-+x++x+-+xxx++-+xx+-+x---+----------+xxxxx+"
+ 	"+x+++x+--++x+-+++++x++++++x++x+++x++x++++++x++++++++++x++x+++x++x+++x++x++++-+x++x+-+x++x+--+x++x+--+x+----+++--+x---x+"
+@@ -67,7 +67,7 @@
+ 	int j;
+ 	const char *numptr;
+ 
+-	numptr = numbers + num * TD_NUM_WIDTH + NUMBERS_NUM * TD_NUM_WIDTH * y;
++	numptr = numbers_bmp + num * TD_NUM_WIDTH + NUMBERS_NUM * TD_NUM_WIDTH * y;
+ 	for (j = 0; j < TD_NUM_WIDTH; j++) {
+ 		if (*numptr == 'x')
+ 			putpixel (buf, bpp, x + j, c1, 1);
